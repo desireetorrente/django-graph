@@ -1,6 +1,6 @@
 import graphene
 from graphene_django.types import DjangoObjectType
-from .models import Movie
+from .models import Movie, Director
 
 
 class MovieType(DjangoObjectType):
@@ -11,6 +11,11 @@ class MovieType(DjangoObjectType):
 
     def resolve_movie_age(self, info):
         return "old movie" if self.year < 2000 else "new movie"
+
+
+class DirectorType(DjangoObjectType):
+    class Meta:
+        model = Director
 
 
 class Query(graphene.ObjectType):
@@ -33,3 +38,62 @@ class Query(graphene.ObjectType):
 
         if title is not None:
             return Movie.objects.get(title=title)
+
+    all_directors = graphene.List(DirectorType)
+
+    def resolve_all_directors(self, info, **kwargs):
+        return Director.objects.all()
+
+
+class MovieCreateMutation(graphene.Mutation):
+    class Arguments:
+        title = graphene.String(required=True)
+        year = graphene.Int(required=True)
+
+    movie = graphene.Field(MovieType)
+
+    # Se puede usar en lugar de title, year los Kwargs
+    def mutate(self, info, title, year):
+        movie = Movie.objects.create(title=title, year=year)
+
+        return MovieCreateMutation(movie)
+
+
+class MovieUpdateMutation(graphene.Mutation):
+    class Arguments:
+        id = graphene.ID(required=True)
+        title = graphene.String()
+        year = graphene.Int()
+
+    movie = graphene.Field(MovieType)
+
+    # Se puede usar en lugar de title, year los Kwargs
+    def mutate(self, info, id, title, year):
+        movie = Movie.objects.get(pk=id)
+        if title is not None:
+            movie.title = title
+
+        if year is not None:
+            movie.year = year
+
+        movie.save()
+
+        return MovieUpdateMutation(movie)
+
+
+class MovieDeleteMutation(graphene.Mutation):
+    class Arguments:
+        id = graphene.ID(required=True)
+
+    # Se puede usar en lugar de title, year los Kwargs
+    def mutate(self, info, id):
+        movie = Movie.objects.get(pk=id)
+        movie.delete()
+
+        return MovieDeleteMutation()
+
+
+class Mutation:
+    create_movie = MovieCreateMutation.Field()
+    update_movie = MovieUpdateMutation.Field()
+    delete_movie = MovieDeleteMutation.Field()
