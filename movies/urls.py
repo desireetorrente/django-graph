@@ -16,8 +16,13 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from graphene_django.views import GraphQLView
+from graphql_jwt.decorators import jwt_cookie
+
+# si queremos que todas mutaciones, queries estén solo disponibles
+# cuando estén logueados los usuarios se puede rodear la vista con
+# jwt_cookie
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path("graphql/", GraphQLView.as_view(graphiql=True))
+    path("graphql/", jwt_cookie(GraphQLView.as_view(graphiql=True)))
 ]
